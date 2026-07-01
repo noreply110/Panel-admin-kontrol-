@@ -1,0 +1,6 @@
+{
+  "name": "Mandiri QRIS Controller",
+  "description": "Dynamic QRIS Cancellation Controller with Web-based Admin Panel and Real-time Updates",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
