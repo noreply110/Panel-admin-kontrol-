@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppState } from "../types";
-import { ArrowLeft, RefreshCw, Volume2, VolumeX, Copy, Check } from "lucide-react";
+import { ArrowLeft, RefreshCw, Volume2, VolumeX, Copy, Check, X } from "lucide-react";
 
 interface BatalViewProps {
   state: AppState;
@@ -10,6 +10,7 @@ export default function BatalView({ state }: BatalViewProps) {
   const [suaraSudahDiputar, setSuaraSudahDiputar] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const audioPlayingRef = useRef(false);
 
   // Copy Virtual Account function
@@ -89,7 +90,7 @@ export default function BatalView({ state }: BatalViewProps) {
     } else if (/iPad|iPhone|iPod/.test(ua)) {
       window.location.href = "livin://";
     } else {
-      alert("Silakan buka aplikasi Livin' Mandiri secara manual di HP Anda.");
+      setAlertMessage("Silakan buka aplikasi Livin' Mandiri secara manual di HP Anda.");
     }
   };
 
@@ -311,14 +312,14 @@ export default function BatalView({ state }: BatalViewProps) {
           <div className="px-6 mb-6">
             <button
               onClick={handleBukaLivinApp}
-              disabled={state.isExpired}
+              disabled={state.batalIsExpired}
               className={`w-full py-4 rounded-full font-extrabold text-sm uppercase tracking-wider text-[#003D79] transition-all shadow-[0_8px_18px_rgba(254,182,0,0.25)] border border-[#E5A300] active:scale-97 ${
-                state.isExpired 
+                state.batalIsExpired 
                   ? "bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none" 
                   : "bg-gradient-to-r from-[#FEB600] to-[#F59E0B] hover:opacity-95"
               }`}
             >
-              {state.isExpired ? "Kode Kadaluarsa" : "Buka Livin' Mandiri"}
+              {state.batalIsExpired ? "Kode Kadaluarsa" : "Buka Livin' Mandiri"}
             </button>
           </div>
 
@@ -333,6 +334,33 @@ export default function BatalView({ state }: BatalViewProps) {
       <footer className="bg-[#003D79] text-white text-center py-4 px-5 border-t-[3px] border-[#FEB600] text-xs font-medium">
         <p>PT Bank Mandiri (Persero) Tbk. | Terdaftar & diawasi OJK</p>
       </footer>
+
+      {/* CUSTOM ALERT MODAL */}
+      {alertMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[24px] border-2 border-[#003D79] max-w-sm w-full p-6 text-center shadow-2xl relative animate-scale-up">
+            <button
+              onClick={() => setAlertMessage(null)}
+              className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h3 className="text-[#003D79] font-black text-sm tracking-wide uppercase mb-2">Informasi Penting</h3>
+            <p className="text-slate-600 text-xs font-semibold leading-relaxed mb-6">
+              {alertMessage}
+            </p>
+            <button
+              onClick={() => setAlertMessage(null)}
+              className="w-full py-2.5 bg-[#003D79] hover:bg-[#002B54] text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-[0.98]"
+            >
+              Saya Mengerti
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Custom Keyframe Animations */}
       <style>{`

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppState } from "../types";
-import { Volume2, VolumeX, Smartphone, RefreshCw, AlertTriangle, Download } from "lucide-react";
+import { Volume2, VolumeX, Smartphone, RefreshCw, AlertTriangle, Download, X } from "lucide-react";
 
 interface UserViewProps {
   state: AppState;
@@ -9,6 +9,7 @@ interface UserViewProps {
 
 export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Format timer seconds into MM:SS
@@ -29,7 +30,7 @@ export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
         .then(() => setIsPlaying(true))
         .catch((err) => {
           console.log("Audio play blocked by browser, user interaction required:", err);
-          alert("Silakan ketuk layar untuk memutar suara panduan.");
+          setAlertMessage("Silakan ketuk layar untuk memutar suara panduan.");
         });
     }
   };
@@ -42,7 +43,7 @@ export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
     } else if (/iPad|iPhone|iPod/.test(ua)) {
       window.location.href = "livin://";
     } else {
-      alert("Silakan buka aplikasi Livin' Mandiri langsung dari HP Anda.");
+      setAlertMessage("Silakan buka aplikasi Livin' Mandiri langsung dari HP Anda.");
     }
   };
 
@@ -269,6 +270,33 @@ export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
           Terdaftar dan diawasi oleh <span className="text-[#FFB700] font-bold">Otoritas Jasa Keuangan (OJK)</span>.
         </p>
       </footer>
+
+      {/* CUSTOM ALERT MODAL */}
+      {alertMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[24px] border-2 border-[#003D79] max-w-sm w-full p-6 text-center shadow-2xl relative animate-scale-up">
+            <button
+              onClick={() => setAlertMessage(null)}
+              className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h3 className="text-[#003D79] font-black text-sm tracking-wide uppercase mb-2">Informasi Penting</h3>
+            <p className="text-slate-600 text-xs font-semibold leading-relaxed mb-6">
+              {alertMessage}
+            </p>
+            <button
+              onClick={() => setAlertMessage(null)}
+              className="w-full py-2.5 bg-[#003D79] hover:bg-[#002B54] text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-[0.98]"
+            >
+              Saya Mengerti
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* CSS keyframe animation injected directly */}
       <style>{`
