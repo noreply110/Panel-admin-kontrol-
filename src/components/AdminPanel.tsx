@@ -11,7 +11,10 @@ import {
   EyeOff,
   RotateCcw,
   Clock,
-  Sparkles
+  Sparkles,
+  QrCode,
+  CreditCard,
+  ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -40,6 +43,8 @@ export default function AdminPanel({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [virtualAccount, setVirtualAccount] = useState(state.virtualAccount || "70014080808");
+  const [isImageUnsaved, setIsImageUnsaved] = useState(false);
+  const [isVAUnsaved, setIsVAUnsaved] = useState(false);
   
   // Custom premium visual feedback states
   const [lastUpdatedSection, setLastUpdatedSection] = useState<"qris" | "batal" | "timer-user" | "timer-batal" | null>(null);
@@ -50,6 +55,9 @@ export default function AdminPanel({
   
   // Real-time visitor state
   const [activeUsersCount, setActiveUsersCount] = useState(0);
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState<"qris" | "va">("qris");
 
   // Poll metrics for user count in header
   useEffect(() => {
@@ -71,16 +79,18 @@ export default function AdminPanel({
     return () => clearInterval(interval);
   }, [adminPin]);
 
-  // Sync state changes
+  // Sync state changes from server, but do not overwrite if admin has unsaved edits
   useEffect(() => {
-    setQrImageUrl(state.qrImageUrl);
-  }, [state.qrImageUrl]);
+    if (!isImageUnsaved) {
+      setQrImageUrl(state.qrImageUrl);
+    }
+  }, [state.qrImageUrl, isImageUnsaved]);
 
   useEffect(() => {
-    if (state.virtualAccount) {
+    if (state.virtualAccount && !isVAUnsaved) {
       setVirtualAccount(state.virtualAccount);
     }
-  }, [state.virtualAccount]);
+  }, [state.virtualAccount, isVAUnsaved]);
 
   // Helper to auto-detect and crop QR code in browser
   const autoCropQR = (base64Str: string): Promise<{ base64: string; cropped: boolean }> => {
@@ -192,6 +202,7 @@ export default function AdminPanel({
         const data = await res.json();
         if (data.success && data.url) {
           setQrImageUrl(data.url);
+          setIsImageUnsaved(true);
           if (cropResult.cropped) {
             setSaveStatus({ 
               type: "success", 
@@ -242,6 +253,7 @@ export default function AdminPanel({
     });
 
     if (success) {
+      setIsImageUnsaved(false);
       setSaveStatus({ type: "success", msg: "Barcode QRIS berhasil diterapkan & Timer QRIS otomatis berjalan!" });
       triggerSuccessVisuals("qris");
       setTimeout(() => setSaveStatus(null), 4000);
@@ -261,6 +273,7 @@ export default function AdminPanel({
     });
 
     if (success) {
+      setIsVAUnsaved(false);
       setSaveStatus({ type: "success", msg: "Nomor Virtual Akun berhasil diperbarui & Timer Batal otomatis berjalan!" });
       triggerSuccessVisuals("batal");
       setTimeout(() => setSaveStatus(null), 4000);
@@ -355,285 +368,357 @@ export default function AdminPanel({
           <ArrowLeft className="h-3.5 w-3.5" />
           Keluar
         </button>
-      </header>
-
-      {/* MAIN CONTAINER: FIXED ONE SCREEN FOR MOBILE AND DESKTOP */}
-      <main className="flex-1 flex flex-col justify-between p-4 max-w-sm mx-auto w-full overflow-y-auto">
+      </header>      {/* MAIN CONTAINER: FIXED ONE SCREEN WITH EASY SWITCHER */}
+      <main className="flex-grow flex flex-col justify-between max-w-sm mx-auto w-full overflow-y-auto px-4 pt-4 pb-2">
         
-        <div className="space-y-4">
+        <div className="flex-grow flex flex-col space-y-4">
           
-          {/* INSTRUCTIONS */}
-          <div className="text-center bg-blue-50/50 border border-blue-100 rounded-2xl py-2 px-3 text-[11px] text-[#003D79] font-medium leading-relaxed shadow-sm">
-            Ambil tangkapan layar (screenshot) QRIS baru Anda, lalu upload di bawah ini untuk mengganti barcode secara instan.
-          </div>
+          <AnimatePresence mode="wait">
+            {activeTab === "qris" ? (
+              <motion.div
+                key="qris-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4 flex flex-col"
+              >
+                {/* INSTRUCTIONS */}
+                <div className="text-center bg-blue-50/70 border border-blue-100 rounded-2xl py-2.5 px-3.5 text-[11px] text-[#003D79] font-medium leading-relaxed shadow-sm">
+                  Ambil tangkapan layar (screenshot) QRIS baru Anda, lalu upload di bawah ini untuk mengganti barcode secara instan.
+                </div>
 
-          {/* MAIN UPLOAD BOX */}
-          <div className={`bg-white border p-4 rounded-2xl shadow-md flex flex-col items-center justify-center gap-3 transition-all duration-500 relative overflow-hidden ${
-            lastUpdatedSection === "qris" 
-              ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
-              : "border-slate-200"
-          }`}>
-            
-            <div className="w-full relative border-2 border-dashed border-blue-200 hover:border-[#003D79] rounded-2xl p-6 bg-slate-50/80 transition-all text-center flex flex-col items-center justify-center gap-2 cursor-pointer group">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                disabled={isUploading}
-              />
-              <div className="p-3.5 bg-blue-50 rounded-full text-[#003D79] border border-blue-100 group-hover:scale-105 transition-transform duration-300">
-                <Upload className="h-6 w-6 animate-pulse" />
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-sm font-bold text-slate-700">
-                  {isUploading ? "Membaca Foto..." : "Upload Foto Barcode"}
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  Ambil dari galeri HP atau tangkap kamera langsung
-                </p>
-              </div>
-            </div>
+                {/* BAGIAN A: KHUSUS PENGATURAN QRIS & BARCODE */}
+                <div id="section-qris-settings-group" className="space-y-3 bg-white p-4 rounded-2xl border border-blue-100 shadow-sm relative">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                    <span className="text-xl">📱</span>
+                    <div>
+                      <h3 className="font-extrabold text-[#003D79] text-xs uppercase tracking-wide">
+                        PENGATURAN QRIS & BARCODE
+                      </h3>
+                      <p className="text-[9px] text-slate-400 font-bold">Mengelola gambar barcode QRIS Anda</p>
+                    </div>
+                  </div>
 
-            {uploadError && (
-              <p className="text-rose-600 text-xs font-bold flex items-center gap-1.5">
-                <AlertCircle className="h-3.5 w-3.5" /> {uploadError}
-              </p>
+                  {/* MAIN UPLOAD BOX */}
+                  <div className={`border p-3 rounded-xl flex flex-col items-center justify-center gap-3 transition-all duration-500 relative overflow-hidden ${
+                    lastUpdatedSection === "qris" 
+                      ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
+                      : "border-slate-200 bg-slate-50/30"
+                  }`}>
+                    
+                    <div className="w-full relative border-2 border-dashed border-blue-200 hover:border-[#003D79] rounded-xl p-4 bg-slate-50 transition-all text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer group">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                        disabled={isUploading}
+                      />
+                      <div className="p-2 bg-blue-50 rounded-full text-[#003D79] border border-blue-100 group-hover:scale-105 transition-transform duration-300">
+                        <Upload className="h-4.5 w-4.5 animate-pulse" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-bold text-slate-700">
+                          {isUploading ? "Membaca Foto..." : "Upload Foto Barcode"}
+                        </p>
+                        <p className="text-[8px] text-slate-400">
+                          Pilih dari galeri HP atau foto langsung
+                        </p>
+                      </div>
+                    </div>
+
+                    {uploadError && (
+                      <p className="text-rose-600 text-[10px] font-bold flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {uploadError}
+                      </p>
+                    )}
+
+                    {/* BARCODE PREVIEW AREA */}
+                    <div className="w-full flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Preview QRIS:</span>
+                      <div className="relative bg-white aspect-square w-12 flex items-center justify-center rounded-lg shadow-inner border border-slate-200 p-0.5 overflow-hidden">
+                        {qrImageUrl && qrImageUrl !== "" && !qrImageUrl.includes("Ganti-gambar") ? (
+                          <img 
+                            src={qrImageUrl} 
+                            alt="QRIS Terkini" 
+                            className="w-full h-full object-contain rounded"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <span className="text-[9px] font-bold text-slate-300 uppercase leading-none">⚠️</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* SAVE AND APPLY ACTION BUTTON */}
+                    <button
+                      onClick={handleApplyImage}
+                      disabled={isUploading}
+                      className="w-full bg-[#003D79] hover:bg-[#002B54] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl shadow-md transition-all duration-200 border border-[#002B54] flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" /> Terapkan Barcode Baru
+                    </button>
+                  </div>
+
+                  {/* TIMER 1: DI DALAM BAGIAN A (QRIS) */}
+                  <div className={`border p-3 rounded-xl flex flex-col gap-2.5 transition-all duration-500 relative overflow-hidden ${
+                    lastUpdatedSection === "timer-user" 
+                      ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
+                      : "border-slate-100 bg-slate-50/20"
+                  }`}>
+                    <div className="flex items-center justify-between border-b pb-1">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-[#003D79]" />
+                        <span className="text-[10px] font-bold text-[#003D79] uppercase">Timer Halaman QRIS (/)</span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-extrabold ${
+                        state.isExpired ? "bg-rose-100 text-rose-700" : state.isTimerRunning ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {state.isExpired ? "EXPIRED" : state.isTimerRunning ? "AKTIF" : "PAUSED"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                      <span className="text-slate-500">Sisa Waktu QRIS:</span>
+                      <strong className="font-mono text-[#003D79] text-xs">{formatSeconds(state.timeLeft)}</strong>
+                    </div>
+
+                    {/* Input to set QRIS initial time */}
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 shrink-0">Atur Waktu:</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={state.initialTime}
+                          onChange={async (e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val > 0) {
+                              await onUpdateState({ initialTime: val });
+                            }
+                          }}
+                          className="w-14 bg-white border border-slate-200 rounded-md py-0.5 text-center font-bold text-slate-700 text-xs focus:outline-none focus:border-[#003D79]"
+                        />
+                        <span className="text-slate-400 text-[10px]">detik</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTimerWrapper("user")}
+                        disabled={state.isExpired}
+                        className={`py-1 px-2 rounded-lg font-extrabold text-[10px] transition-all border ${
+                          state.isTimerRunning 
+                            ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200" 
+                            : "bg-[#003D79] hover:bg-[#002B54] text-white border-[#003D79]"
+                        } disabled:opacity-50`}
+                      >
+                        {state.isTimerRunning ? "Pause" : "Play"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResetTimerWrapper("user")}
+                        className="py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-extrabold rounded-lg text-[10px] transition-all"
+                      >
+                        Reset ({state.initialTime}s)
+                      </button>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => handleToggleExpireWrapper("user")}
+                      className={`w-full py-1.5 rounded-lg font-extrabold text-[10px] transition-all border ${
+                        state.isExpired
+                          ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
+                          : "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200"
+                      }`}
+                    >
+                      {state.isExpired ? "Aktifkan Kembali" : "Paksa Habis (Expired)"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* AKSES HALAMAN PENGGUNA QRIS */}
+                <div className="bg-blue-50/40 border border-blue-100 rounded-2xl p-3 flex flex-col gap-2 shadow-sm">
+                  <span className="text-[9px] font-extrabold text-[#003D79]/70 uppercase tracking-widest text-center">
+                    Akses Layar Pengguna (QRIS)
+                  </span>
+                  <a
+                    href="/user"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-2 px-3 bg-[#003D79] hover:bg-[#002B54] text-white rounded-xl font-extrabold text-[11px] uppercase tracking-wide text-center flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 border border-[#002B54]"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Buka Halaman QRIS (/user)
+                  </a>
+                  <p className="text-[8px] text-slate-400 font-medium text-center">
+                    Gunakan link ini untuk melihat tampilan QRIS pelanggan secara langsung di tab baru.
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="va-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4 flex flex-col"
+              >
+                {/* INSTRUCTIONS VA */}
+                <div className="text-center bg-amber-50/70 border border-amber-100 rounded-2xl py-2.5 px-3.5 text-[11px] text-amber-800 font-medium leading-relaxed shadow-sm">
+                  Masukkan nomor Virtual Account (VA) yang aktif. Nomor ini akan langsung berubah di layar pembatalan transaksi pengguna.
+                </div>
+
+                {/* BAGIAN B: KHUSUS PENGATURAN VIRTUAL ACCOUNT & TOMBOL BATAL */}
+                <div id="section-va-settings-group" className="space-y-3 bg-white p-4 rounded-2xl border border-amber-100 shadow-sm relative">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                    <span className="text-xl">💳</span>
+                    <div>
+                      <h3 className="font-extrabold text-amber-800 text-xs uppercase tracking-wide">
+                        PENGATURAN VIRTUAL ACCOUNT (VA)
+                      </h3>
+                      <p className="text-[9px] text-slate-400 font-bold">Mengelola nomor Virtual Account untuk pembatalan</p>
+                    </div>
+                  </div>
+
+                  {/* CONTROL VIRTUAL ACCOUNT INSTANTLY */}
+                  <div className={`border p-3.5 rounded-xl flex flex-col gap-2.5 transition-all duration-500 relative overflow-hidden ${
+                    lastUpdatedSection === "batal" 
+                      ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
+                      : "border-slate-200 bg-slate-50/30"
+                  }`}>
+                    <div>
+                      <label className="text-[9px] font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
+                        Ubah Nomor Virtual Account (Instan)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={virtualAccount}
+                          onChange={(e) => {
+                            setVirtualAccount(e.target.value);
+                            setIsVAUnsaved(true);
+                          }}
+                          placeholder="Contoh: 70014080808"
+                          className="flex-grow bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-amber-900 tracking-wider focus:outline-none focus:border-amber-600"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyVirtualAccount}
+                          className="bg-[#FEB600] hover:bg-[#E5A300] text-[#003D79] font-extrabold text-xs px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1 shrink-0 shadow-sm"
+                        >
+                          Ubah
+                        </button>
+                      </div>
+                      <p className="text-[8px] text-slate-400 mt-1">
+                        Berubah seketika di halaman pengguna /batal
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* TIMER 2: DI DALAM BAGIAN B (HALAMAN BATAL / VA) */}
+                  <div className={`border p-3.5 rounded-xl flex flex-col gap-3 transition-all duration-500 relative overflow-hidden ${
+                    lastUpdatedSection === "timer-batal" 
+                      ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
+                      : "border-slate-100 bg-slate-50/20"
+                  }`}>
+                    <div className="flex items-center justify-between border-b pb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-amber-700" />
+                        <span className="text-[10px] font-bold text-amber-700 uppercase">Timer VA / Batal (/batal)</span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-extrabold ${
+                        state.batalIsExpired ? "bg-rose-100 text-rose-700" : state.batalIsTimerRunning ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {state.batalIsExpired ? "EXPIRED" : state.batalIsTimerRunning ? "AKTIF" : "PAUSED"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                      <span className="text-slate-500">Sisa Waktu VA:</span>
+                      <strong className="font-mono text-amber-700 text-xs">{formatSeconds(state.batalTimeLeft !== undefined ? state.batalTimeLeft : 300)}</strong>
+                    </div>
+
+                    {/* Input to set Batal initial time */}
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 shrink-0">Atur Waktu:</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={state.batalInitialTime !== undefined ? state.batalInitialTime : 300}
+                          onChange={async (e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val > 0) {
+                              await onUpdateState({ batalInitialTime: val });
+                            }
+                          }}
+                          className="w-14 bg-white border border-slate-200 rounded-md py-0.5 text-center font-bold text-slate-700 text-xs focus:outline-none focus:border-amber-600"
+                        />
+                        <span className="text-slate-400 text-[10px]">detik</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTimerWrapper("batal")}
+                        disabled={state.batalIsExpired}
+                        className={`py-1 px-2 rounded-lg font-extrabold text-[10px] transition-all border ${
+                          state.batalIsTimerRunning 
+                            ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200" 
+                            : "bg-amber-700 hover:bg-amber-800 text-white border-amber-700"
+                        } disabled:opacity-50`}
+                      >
+                        {state.batalIsTimerRunning ? "Pause" : "Play"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResetTimerWrapper("batal")}
+                        className="py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-extrabold rounded-lg text-[10px] transition-all"
+                      >
+                        Reset ({state.batalInitialTime !== undefined ? state.batalInitialTime : 300}s)
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleExpireWrapper("batal")}
+                      className={`w-full py-1.5 rounded-lg font-extrabold text-[10px] transition-all border ${
+                        state.batalIsExpired
+                          ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
+                          : "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200"
+                      }`}
+                    >
+                      {state.batalIsExpired ? "Aktifkan Kembali" : "Paksa Habis (Expired)"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* AKSES HALAMAN PENGGUNA BATAL */}
+                <div className="bg-amber-50/40 border border-amber-100 rounded-2xl p-3 flex flex-col gap-2 shadow-sm">
+                  <span className="text-[9px] font-extrabold text-amber-800/70 uppercase tracking-widest text-center">
+                    Akses Layar Pengguna (Batal / VA)
+                  </span>
+                  <a
+                    href="/batal"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-2 px-3 bg-amber-700 hover:bg-amber-800 text-white rounded-xl font-extrabold text-[11px] uppercase tracking-wide text-center flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 border border-amber-800"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Buka Halaman Batal (/batal)
+                  </a>
+                  <p className="text-[8px] text-slate-400 font-medium text-center">
+                    Gunakan link ini untuk melihat tampilan pembatalan & nomor VA pelanggan.
+                  </p>
+                </div>
+              </motion.div>
             )}
+          </AnimatePresence>
 
-            {/* BARCODE PREVIEW AREA */}
-            <div className="w-full text-center space-y-1.5">
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Preview Gambar Terpilih:</p>
-              <div className="relative bg-white aspect-square w-28 mx-auto flex items-center justify-center rounded-xl shadow-inner border border-slate-200/80 p-1.5 overflow-hidden">
-                <img 
-                  src={qrImageUrl} 
-                  alt="QRIS Terkini" 
-                  className="w-full h-full object-contain rounded-lg"
-                  onError={(e) => {
-                    console.log("No custom image preview available yet.");
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* SAVE AND APPLY ACTION BUTTON */}
-            <button
-              onClick={handleApplyImage}
-              disabled={isUploading}
-              className="w-full bg-[#003D79] hover:bg-[#002B54] text-white font-extrabold text-xs tracking-wider uppercase py-3.5 px-6 rounded-xl shadow-md transition-all duration-200 border border-[#002B54] flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-            >
-              <CheckCircle className="h-4 w-4" /> Terapkan Barcode Baru
-            </button>
-          </div>
-
-          {/* CONTROL VIRTUAL ACCOUNT INSTANTLY */}
-          <div className={`bg-white border p-4 rounded-2xl shadow-md flex flex-col gap-3 transition-all duration-500 relative overflow-hidden ${
-            lastUpdatedSection === "batal" 
-              ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
-              : "border-slate-200"
-          }`}>
-            <div>
-              <label className="text-[10px] font-extrabold text-[#003D79] uppercase tracking-wider block mb-1">
-                Ubah Nomor Virtual Akun (Instan)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={virtualAccount}
-                  onChange={(e) => setVirtualAccount(e.target.value)}
-                  placeholder="Contoh: 70014080808"
-                  className="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-[#003D79] tracking-wider focus:outline-none focus:border-[#003D79]"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyVirtualAccount}
-                  className="bg-[#FEB600] hover:bg-[#E5A300] text-[#003D79] font-extrabold text-xs px-4 py-2 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1 shrink-0 shadow-sm"
-                >
-                  Ubah
-                </button>
-              </div>
-              <p className="text-[9px] text-slate-400 mt-1">
-                Berubah seketika di halaman pengguna /batal
-              </p>
-            </div>
-          </div>
-
-          {/* QUICK LINKS SECTION */}
-          <div className="bg-slate-100 border border-slate-200 rounded-2xl p-3 flex flex-col gap-2 shadow-sm">
-            <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest text-center">
-              Akses Halaman Pengguna:
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-center text-xs font-bold">
-              <a
-                href="/"
-                target="_blank"
-                rel="noreferrer"
-                className="py-1.5 px-3 bg-white hover:bg-slate-50 text-[#003D79] rounded-lg border border-slate-200 transition-all shadow-sm"
-              >
-                Halaman QRIS (/)
-              </a>
-              <a
-                href="/batal"
-                target="_blank"
-                rel="noreferrer"
-                className="py-1.5 px-3 bg-white hover:bg-slate-50 text-amber-700 rounded-lg border border-slate-200 transition-all shadow-sm animate-pulse"
-              >
-                Halaman Batal (/batal)
-              </a>
-            </div>
-          </div>
-
-          {/* TIMER 1: HALAMAN UTAMA (QRIS) */}
-          <div className={`bg-white border p-4 rounded-2xl shadow-md flex flex-col gap-3 transition-all duration-500 relative overflow-hidden ${
-            lastUpdatedSection === "timer-user" 
-              ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
-              : "border-slate-200"
-          }`}>
-            <div className="flex items-center justify-between border-b pb-2">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4.5 w-4.5 text-[#003D79]" />
-                <span className="text-xs font-bold text-[#003D79] uppercase">Timer Halaman QRIS (/)</span>
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-                state.isExpired ? "bg-rose-100 text-rose-700" : state.isTimerRunning ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-              }`}>
-                {state.isExpired ? "EXPIRED" : state.isTimerRunning ? "AKTIF" : "PAUSED"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-slate-500">Sisa Waktu:</span>
-              <strong className="font-mono text-[#003D79] text-base">{formatSeconds(state.timeLeft)}</strong>
-            </div>
-
-            {/* Input to set QRIS initial time */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500 shrink-0">Atur Waktu:</span>
-              <input
-                type="number"
-                value={state.initialTime}
-                onChange={async (e) => {
-                  const val = parseInt(e.target.value);
-                  if (!isNaN(val) && val > 0) {
-                    await onUpdateState({ initialTime: val });
-                  }
-                }}
-                className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-center font-bold text-slate-700 focus:outline-none"
-              />
-              <span className="text-slate-400">detik</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => handleToggleTimerWrapper("user")}
-                disabled={state.isExpired}
-                className={`py-2 px-2.5 rounded-lg font-extrabold text-xs transition-all border ${
-                  state.isTimerRunning 
-                    ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200" 
-                    : "bg-[#003D79] hover:bg-[#002B54] text-white border-[#003D79]"
-                } disabled:opacity-50`}
-              >
-                {state.isTimerRunning ? "Pause" : "Play"}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleResetTimerWrapper("user")}
-                className="py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-extrabold rounded-lg text-xs transition-all"
-              >
-                Reset ({state.initialTime}s)
-              </button>
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => handleToggleExpireWrapper("user")}
-              className={`w-full py-2 px-3 rounded-lg font-extrabold text-xs transition-all border ${
-                state.isExpired
-                  ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
-                  : "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200"
-              }`}
-            >
-              {state.isExpired ? "Aktifkan Kembali" : "Paksa Habis (Expired)"}
-            </button>
-          </div>
-
-          {/* TIMER 2: HALAMAN BATAL */}
-          <div className={`bg-white border p-4 rounded-2xl shadow-md flex flex-col gap-3 transition-all duration-500 relative overflow-hidden ${
-            lastUpdatedSection === "timer-batal" 
-              ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500 bg-emerald-50/5" 
-              : "border-slate-200"
-          }`}>
-            <div className="flex items-center justify-between border-b pb-2">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4.5 w-4.5 text-amber-700" />
-                <span className="text-xs font-bold text-amber-700 uppercase">Timer Halaman Batal (/batal)</span>
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-                state.batalIsExpired ? "bg-rose-100 text-rose-700" : state.batalIsTimerRunning ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-              }`}>
-                {state.batalIsExpired ? "EXPIRED" : state.batalIsTimerRunning ? "AKTIF" : "PAUSED"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-slate-500">Sisa Waktu:</span>
-              <strong className="font-mono text-amber-700 text-base">{formatSeconds(state.batalTimeLeft !== undefined ? state.batalTimeLeft : 300)}</strong>
-            </div>
-
-            {/* Input to set Batal initial time */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500 shrink-0">Atur Waktu:</span>
-              <input
-                type="number"
-                value={state.batalInitialTime !== undefined ? state.batalInitialTime : 300}
-                onChange={async (e) => {
-                  const val = parseInt(e.target.value);
-                  if (!isNaN(val) && val > 0) {
-                    await onUpdateState({ batalInitialTime: val });
-                  }
-                }}
-                className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-center font-bold text-slate-700 focus:outline-none"
-              />
-              <span className="text-slate-400">detik</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => handleToggleTimerWrapper("batal")}
-                disabled={state.batalIsExpired}
-                className={`py-2 px-2.5 rounded-lg font-extrabold text-xs transition-all border ${
-                  state.batalIsTimerRunning 
-                    ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200" 
-                    : "bg-amber-700 hover:bg-amber-800 text-white border-amber-700"
-                } disabled:opacity-50`}
-              >
-                {state.batalIsTimerRunning ? "Pause" : "Play"}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleResetTimerWrapper("batal")}
-                className="py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-extrabold rounded-lg text-xs transition-all"
-              >
-                Reset ({state.batalInitialTime !== undefined ? state.batalInitialTime : 300}s)
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleToggleExpireWrapper("batal")}
-              className={`w-full py-2 px-3 rounded-lg font-extrabold text-xs transition-all border ${
-                state.batalIsExpired
-                  ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
-                  : "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200"
-              }`}
-            >
-              {state.batalIsExpired ? "Aktifkan Kembali" : "Paksa Habis (Expired)"}
-            </button>
-          </div>
-
-          {/* STATUS NOTIFICATION TOAST (Professional floating banner with drawing animations & auto-draining progress bar) */}
+          {/* STATUS NOTIFICATION TOAST (Floating with progress) */}
           <AnimatePresence>
             {saveStatus && (
               <motion.div
@@ -715,11 +800,38 @@ export default function AdminPanel({
         </div>
 
         {/* BANK MANDIRI LEGAL FOOTER */}
-        <footer className="text-center text-[10px] text-slate-400 font-medium py-4">
+        <footer className="text-center text-[9px] text-slate-400 font-medium py-2 mt-2">
           PT Bank Mandiri (Persero) Tbk.
         </footer>
 
       </main>
+
+      {/* PREMIUM BOTTOM NAV BAR - FOR EASY ICON-BASED SWAPPING */}
+      <div className="bg-white border-t border-slate-200 py-2.5 px-6 flex justify-around items-center flex-shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] z-40">
+        <button
+          onClick={() => setActiveTab("qris")}
+          className={`flex flex-col items-center gap-1 transition-all duration-200 focus:outline-none ${
+            activeTab === "qris" ? "text-[#003D79] scale-105" : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "qris" ? "bg-blue-50 text-[#003D79]" : "bg-transparent text-slate-400"}`}>
+            <QrCode className="h-5 w-5" />
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-wider">Barcode QRIS</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("va")}
+          className={`flex flex-col items-center gap-1 transition-all duration-200 focus:outline-none ${
+            activeTab === "va" ? "text-amber-800 scale-105" : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "va" ? "bg-amber-50 text-amber-800" : "bg-transparent text-slate-400"}`}>
+            <CreditCard className="h-5 w-5" />
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-wider">Virtual Account</span>
+        </button>
+      </div>
     </div>
   );
 }

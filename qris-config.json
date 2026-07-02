@@ -1,5 +1,5 @@
 {
-  "qrImageUrl": "https://mssq.me/Ganti-gambar",
+  "qrImageUrl": "",
   "useCustomText": false,
   "qrCustomText": "https://bmri.id/bayar-qris",
   "initialTime": 300,
@@ -11,5 +11,10 @@
   "adminPin": "080808",
   "logoUrl": "https://mediate.co.id/wp-content/uploads/2020/12/Bank_Mandiri_logo.png",
   "statusMessage": "SISA WAKTU",
-  "virtualAccount": "70014080808"
+  "virtualAccount": "70014080808",
+  "batalInitialTime": 300,
+  "batalTimeLeft": 0,
+  "batalIsTimerRunning": false,
+  "batalTimerTargetTime": null,
+  "batalIsExpired": true
 }

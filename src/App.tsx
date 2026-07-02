@@ -16,10 +16,20 @@ const getSessionId = (): string => {
 };
 
 export default function App() {
-  const [view, setView] = useState<"user" | "batal" | "pin" | "admin">("user");
+  const [view, setView] = useState<"user" | "batal" | "pin" | "admin">(() => {
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    if (path === "/batal" || path === "/batal/" || path === "/pembatalan" || path === "/pembatalan/") {
+      return "batal";
+    } else if (path === "/user" || path === "/user/" || path === "/qris" || path === "/qris/" || path === "/pembayaran" || path === "/pembayaran/") {
+      return "user";
+    } else {
+      const savedPin = typeof window !== "undefined" ? sessionStorage.getItem("mandiri_admin_token") : null;
+      return savedPin ? "admin" : "pin";
+    }
+  });
   const [adminPin, setAdminPin] = useState<string>("");
   const [state, setState] = useState<AppState>({
-    qrImageUrl: "https://mssq.me/Ganti-gambar",
+    qrImageUrl: "",
     useCustomText: false,
     qrCustomText: "https://bmri.id/bayar-qris",
     initialTime: 300,
@@ -37,7 +47,11 @@ export default function App() {
   // 1. Detect Path on Mount to separate into User, Batal, vs Admin views
   useEffect(() => {
     const path = window.location.pathname;
-    if (path === "/admin" || path === "/admin/") {
+    if (path === "/batal" || path === "/batal/" || path === "/pembatalan" || path === "/pembatalan/") {
+      setView("batal");
+    } else if (path === "/user" || path === "/user/" || path === "/qris" || path === "/qris/" || path === "/pembayaran" || path === "/pembayaran/") {
+      setView("user");
+    } else {
       const savedPin = sessionStorage.getItem("mandiri_admin_token");
       if (savedPin) {
         setAdminPin(savedPin);
@@ -45,10 +59,6 @@ export default function App() {
       } else {
         setView("pin");
       }
-    } else if (path === "/batal" || path === "/batal/" || path === "/pembatalan" || path === "/pembatalan/") {
-      setView("batal");
-    } else {
-      setView("user");
     }
   }, []);
 
@@ -230,7 +240,8 @@ export default function App() {
       <PINScreen
         onVerify={handleVerifyPIN}
         onCancel={() => {
-          window.location.href = "/";
+          window.history.pushState({}, "", "/user");
+          setView("user");
         }}
       />
     );
@@ -248,7 +259,7 @@ export default function App() {
     <UserView
       state={state}
       onNavigateToAdmin={() => {
-        window.history.pushState({}, "", "/admin");
+        window.history.pushState({}, "", "/");
         setView("pin");
       }}
     />

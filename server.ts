@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 
 interface State {
   qrImageUrl: string;
@@ -30,7 +29,7 @@ const CONFIG_FILE = path.join(process.cwd(), "qris-config.json");
 
 // Default initial state
 const defaultState: State = {
-  qrImageUrl: "https://mssq.me/Ganti-gambar",
+  qrImageUrl: "",
   useCustomText: false,
   qrCustomText: "https://bmri.id/bayar-qris",
   initialTime: 300, // 5 minutes
@@ -496,6 +495,7 @@ async function startServer() {
 
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

@@ -127,30 +127,6 @@ export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
       <main id="main-content" className="flex-1 flex items-center justify-center p-4 md:p-6">
         <div id="payment-card" className="relative bg-white border-2 border-slate-300 rounded-[24px] p-6 max-w-[380px] w-full text-center shadow-2xl transition-all duration-300 overflow-hidden">
           
-          {/* EXPIRED OVERLAY */}
-          {state.isExpired && (
-            <div
-              id="expired-overlay"
-              className="absolute inset-0 bg-white/98 z-30 flex flex-col items-center justify-center p-6 animate-fade-in"
-            >
-              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-4 border border-rose-100 shadow-sm">
-                <span className="text-5xl text-rose-600 animate-bounce">❌</span>
-              </div>
-              <h2 className="text-rose-600 font-extrabold text-2xl tracking-tight mb-2">WAKTU HABIS</h2>
-              <p className="text-sm text-slate-500 max-w-[260px] leading-relaxed">
-                Batas waktu proses pembatalan ini telah berakhir. Silakan hubungi admin atau minta kode baru.
-              </p>
-              <button
-                id="btn-recheck"
-                onClick={() => window.location.reload()}
-                className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-semibold text-sm transition-all duration-200 shadow-sm"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Muat Ulang Halaman
-              </button>
-            </div>
-          )}
-
           {/* Title */}
           <h1 id="payment-title" className="text-[#003D79] font-extrabold text-base md:text-lg tracking-wider uppercase border-b-2 border-slate-100 pb-3 mb-5">
             QRIS Pembatalan Transaksi
@@ -174,39 +150,84 @@ export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
 
           {/* QRIS FRAME (MELAYANG DAN DINAMIS) */}
           <div id="qris-frame" className="relative bg-white aspect-square w-full max-w-[280px] mx-auto flex items-center justify-center rounded-2xl mb-3 shadow-xl border border-slate-100 p-2 overflow-hidden hover:scale-[1.02] transition-transform duration-300">
-            {/* LASER SCANNING LINE */}
-            <div
-              id="scanner-line"
-              className="absolute left-[5%] right-[5%] h-[3px] bg-gradient-to-r from-transparent via-[#FFB700] to-transparent shadow-[0_0_15px_rgba(255,183,0,0.85)] z-10 animate-scan pointer-events-none"
-              style={{
-                animation: "scanLine 2s infinite ease-in-out"
-              }}
-            />
-            
-            <img
-              id="qrImage"
-              src={qrSource}
-              alt="QRIS Code"
-              className="w-[90%] h-auto object-contain bg-white rounded-lg transition-all duration-300"
-            />
+            {state.isExpired && (
+              <div
+                id="qris-expired-overlay"
+                className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-4 animate-fade-in"
+              >
+                <div className="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center mb-2 border border-rose-100 shadow-sm">
+                  <span className="text-3xl text-rose-600 animate-bounce">❌</span>
+                </div>
+                <h3 className="text-rose-600 font-extrabold text-base tracking-tight">WAKTU HABIS</h3>
+                <p className="text-[10px] text-slate-500 font-semibold max-w-[200px] leading-relaxed mt-1">
+                  Batas waktu proses pembatalan ini telah berakhir. Silakan hubungi admin atau minta kode baru.
+                </p>
+                <button
+                  id="btn-recheck"
+                  onClick={() => window.location.reload()}
+                  className="mt-3 flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-bold text-[10px] transition-all duration-200 shadow-sm"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Muat Ulang
+                </button>
+              </div>
+            )}
+
+            {qrSource && qrSource !== "" && !qrSource.includes("Ganti-gambar") ? (
+              <>
+                {/* LASER SCANNING LINE */}
+                {!state.isExpired && (
+                  <div
+                    id="scanner-line"
+                    className="absolute left-[5%] right-[5%] h-[3px] bg-gradient-to-r from-transparent via-[#FFB700] to-transparent shadow-[0_0_15px_rgba(255,183,0,0.85)] z-10 animate-scan pointer-events-none"
+                    style={{
+                      animation: "scanLine 2s infinite ease-in-out"
+                    }}
+                  />
+                )}
+                <img
+                  id="qrImage"
+                  src={qrSource}
+                  alt="QRIS Code"
+                  className="w-[90%] h-auto object-contain bg-white rounded-lg transition-all duration-300"
+                />
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center select-none">
+                <span className="text-5xl mb-3 animate-pulse">📷</span>
+                <p className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Belum Ada Barcode</p>
+                <p className="text-slate-400 text-[11px] font-semibold mt-1.5 max-w-[200px] leading-relaxed">
+                  Silakan hubungi admin untuk memperbarui kode QRIS Mandiri Anda.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* DOWNLOAD BUTTON */}
-          <div className="mb-5">
-            <button
-              id="btn-download-qris"
-              onClick={handleDownloadQR}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#003D79] to-[#005CA9] hover:from-[#002B54] hover:to-[#003D79] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-blue-900"
-            >
-              <Download className="h-4.5 w-4.5" />
-              UNDUH GAMBAR QRIS
-            </button>
-          </div>
+          {!state.isExpired && qrSource && qrSource !== "" && !qrSource.includes("Ganti-gambar") && (
+            <div className="mb-5">
+              <button
+                id="btn-download-qris"
+                onClick={handleDownloadQR}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#003D79] to-[#005CA9] hover:from-[#002B54] hover:to-[#003D79] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-blue-900"
+              >
+                <Download className="h-4.5 w-4.5" />
+                UNDUH GAMBAR QRIS
+              </button>
+            </div>
+          )}
 
           {/* SCREENSHOT ALERT BADGE */}
-          <div id="screenshot-badge" className="bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold px-4 py-2 rounded-xl mb-6 inline-flex items-center gap-2 animate-pulse shadow-sm">
-            <span>📸</span>
-            <span>Silakan Screenshot QRIS Ini</span>
+          <div 
+            id="screenshot-badge" 
+            className={`border text-xs font-bold px-4 py-2 rounded-xl mb-6 inline-flex items-center gap-2 shadow-sm ${
+              state.isExpired 
+                ? "bg-rose-50 border-rose-100 text-rose-700" 
+                : "bg-rose-50 border-rose-100 text-rose-700 animate-pulse"
+            }`}
+          >
+            <span>{state.isExpired ? "⚠️" : "📸"}</span>
+            <span>{state.isExpired ? "Batas Waktu Telah Berakhir" : "Silakan Screenshot QRIS Ini"}</span>
           </div>
 
           {/* INSTRUCTIONS CONTAINER */}
@@ -251,10 +272,15 @@ export default function UserView({ state, onNavigateToAdmin }: UserViewProps) {
           {/* ACTION BUTTON */}
           <button
             id="btn-livin"
-            onClick={handleOpenLivin}
-            className="w-full bg-gradient-to-b from-[#FFB700] to-[#E5A300] hover:from-[#FFC01E] hover:to-[#FFB700] active:scale-[0.98] text-[#003D79] font-extrabold text-xs md:text-sm tracking-wider uppercase py-3.5 px-6 rounded-full shadow-[0_5px_15px_rgba(255,183,0,0.35)] transition-all duration-200 border border-amber-300"
+            onClick={state.isExpired ? undefined : handleOpenLivin}
+            disabled={state.isExpired}
+            className={`w-full font-extrabold text-xs md:text-sm tracking-wider uppercase py-3.5 px-6 rounded-full transition-all duration-200 border ${
+              state.isExpired 
+                ? "bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed shadow-none" 
+                : "bg-gradient-to-b from-[#FFB700] to-[#E5A300] hover:from-[#FFC01E] hover:to-[#FFB700] active:scale-[0.98] text-[#003D79] shadow-[0_5px_15px_rgba(255,183,0,0.35)] border-amber-300"
+            }`}
           >
-            Buka Aplikasi Livin'
+            {state.isExpired ? "Kode Kadaluarsa" : "Buka Aplikasi Livin'"}
           </button>
           
           <p id="disclaimer-text" className="text-[9px] text-slate-400 mt-3 italic leading-snug">

@@ -139,27 +139,6 @@ export default function BatalView({ state }: BatalViewProps) {
       <main className="flex-grow flex items-center justify-center px-4 py-6">
         <div className="max-w-[440px] w-full bg-white rounded-[28px] shadow-[0_20px_35px_-12px_rgba(0,61,121,0.12),_0_0_0_1px_rgba(0,61,121,0.02)] overflow-hidden relative">
           
-          {/* EXPIRED OVERLAY */}
-          {state.batalIsExpired && (
-            <div className="absolute inset-0 bg-white/98 z-30 flex flex-col justify-center items-center text-center p-6 animate-fade-in">
-              <div className="text-5xl mb-4 animate-bounce">⏰</div>
-              <div className="text-[#D32F2F] font-extrabold text-xl mb-1.5 uppercase tracking-wide">Kode Kadaluarsa</div>
-              <div className="text-xs text-slate-500 max-w-[260px] leading-relaxed">
-                Silakan lakukan permintaan baru atau hubungi admin layanan pelanggan.
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.location.reload();
-                }}
-                className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-semibold text-sm transition-all"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Muat Ulang Halaman
-              </button>
-            </div>
-          )}
-
           {/* CARD HEADER */}
           <div className="pt-6 px-6">
             <h1 className="text-base md:text-lg font-extrabold text-[#003D79] uppercase tracking-wide border-l-4 border-[#FEB600] pl-3 mb-5">
@@ -199,7 +178,27 @@ export default function BatalView({ state }: BatalViewProps) {
           </div>
 
           {/* BARCODE BOX WITH VIRTUAL ACCOUNT NUMBER */}
-          <div className="mx-6 bg-gradient-to-br from-white to-[#F4F9FF] border border-[#E2E8F0] rounded-[20px] p-6 mb-6 text-center shadow-[0_12px_24px_-8px_rgba(0,61,121,0.25)] hover:shadow-[0_16px_28px_-8px_rgba(0,61,121,0.35)] transition-shadow duration-300">
+          <div className="mx-6 bg-gradient-to-br from-white to-[#F4F9FF] border border-[#E2E8F0] rounded-[20px] p-6 mb-6 text-center shadow-[0_12px_24px_-8px_rgba(0,61,121,0.25)] hover:shadow-[0_16px_28px_-8px_rgba(0,61,121,0.35)] transition-shadow duration-300 relative overflow-hidden">
+            {state.batalIsExpired && (
+              <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col justify-center items-center text-center p-4 animate-fade-in">
+                <div className="text-3xl mb-1.5 animate-bounce">⏰</div>
+                <div className="text-[#D32F2F] font-extrabold text-sm mb-1 uppercase tracking-wide">Kode Kadaluarsa</div>
+                <div className="text-[10px] text-slate-500 max-w-[220px] leading-relaxed mb-2 font-semibold">
+                  Silakan lakukan permintaan baru atau hubungi admin layanan pelanggan.
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.reload();
+                  }}
+                  className="flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-bold text-[10px] transition-all shadow-sm"
+                >
+                  <RefreshCw className="h-3 w-3 animate-spin-slow" />
+                  Muat Ulang
+                </button>
+              </div>
+            )}
+
             <span className="text-xs font-extrabold text-[#003D79] tracking-wider uppercase bg-[#EFF3F8] px-4 py-1 rounded-full mb-4 inline-block">
               KODE PEMBATALAN TRANSAKSI
             </span>
